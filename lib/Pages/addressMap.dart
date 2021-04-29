@@ -20,7 +20,6 @@ class _AddressMapState extends State<AddressMap> {
   Marker marker;
   GoogleMapController _controller;
   String currentAddress, updatedAddress, _address;
-  Uint8List customIcon;
 
   static final CameraPosition initialLocation = CameraPosition(
     target: LatLng(37.42796133580664, -122.085749655962),
@@ -188,9 +187,13 @@ class _AddressMapState extends State<AddressMap> {
 
       _getAddress(tappedLoc.latitude, tappedLoc.longitude)
           .then((value) {
+            r = tappedLoc.latitude;
+            t = tappedLoc.longitude;
         _address = "${value.first.addressLine}";
         updatedAddress = _address;
       });
     });//LatLng pinCoordinates = tappedLoc
   }
+  double r;
+  double t;
 }
