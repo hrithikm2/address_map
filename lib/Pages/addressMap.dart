@@ -16,11 +16,11 @@ class AddressMap extends StatefulWidget {
 class _AddressMapState extends State<AddressMap> {
   StreamSubscription _locationSubscription;
   Location _locationTracker = Location();
+  List<Marker> marker1 = [];
   Marker marker;
   GoogleMapController _controller;
-  String currentAddress,updatedAddress,_address;
+  String currentAddress, updatedAddress, _address;
   Uint8List customIcon;
-
 
   static final CameraPosition initialLocation = CameraPosition(
     target: LatLng(37.42796133580664, -122.085749655962),
@@ -31,41 +31,50 @@ class _AddressMapState extends State<AddressMap> {
     ByteData byteData = await DefaultAssetBundle.of(context).load("res/pin.png");
     return byteData.buffer.asUint8List();
   }
-
-  void updateMarkerAndCircle(LocationData newLocalData, Uint8List imageData) {
+  BitmapDescriptor pinLocationIcon;
+  @override
+  void initState() {
+    super.initState();
+    setCustomMapPin();
+  }
+  void setCustomMapPin() async {
+    pinLocationIcon = await BitmapDescriptor.fromAssetImage(
+        ImageConfiguration(devicePixelRatio: 2.5),
+        'res/pin.png');
+  }
+  void updateMarkerAndCircle(LocationData newLocalData) {
     LatLng latlng = LatLng(newLocalData.latitude, newLocalData.longitude);
     this.setState(() {
-      marker = Marker(
-          markerId: MarkerId("home1"),
+      //marker1 = [];
+      marker1.add(Marker(
+          markerId: MarkerId(newLocalData.toString()),
           position: latlng,
           draggable: false,
-          icon: BitmapDescriptor.fromBytes(imageData));
+          icon: pinLocationIcon
+      ));
     });
   }
 
   void getCurrentLocation() async {
+    Uint8List imageData = await getMarker();
+    var location = await _locationTracker.getLocation();
 
+    updateMarkerAndCircle(location);
+    _controller.animateCamera(CameraUpdate.newCameraPosition(new CameraPosition(
+        bearing: 0,
+        target: LatLng(location.latitude, location.longitude),
+        tilt: 0,
+        zoom: 18.00)));
+    //updateMarkerAndCircle(location, imageData);
 
-      Uint8List imageData = await getMarker();
-      var location = await _locationTracker.getLocation();
-
-      updateMarkerAndCircle(location, imageData);
-          _controller.animateCamera(CameraUpdate.newCameraPosition(new CameraPosition(
-              bearing: 0,
-              target: LatLng(location.latitude, location.longitude),
-              tilt: 0,
-              zoom: 24.00)));
-          updateMarkerAndCircle(location, imageData);
-
-      setState(() {
-        _getAddress(location.latitude, location.longitude)
-            .then((value) {
-          setState(() {
-            _address = "${value.first.addressLine}";
-            currentAddress = _address;
-          });
+    setState(() {
+      _getAddress(location.latitude, location.longitude).then((value) {
+        setState(() {
+          _address = "${value.first.addressLine}";
+          currentAddress = _address;
         });
       });
+    });
   }
 
   @override
@@ -88,10 +97,10 @@ class _AddressMapState extends State<AddressMap> {
           Flexible(
             child: GoogleMap(
                 mapType: MapType.normal,
-                zoomGesturesEnabled: false,
+                zoomGesturesEnabled: true,
                 zoomControlsEnabled: false,
                 initialCameraPosition: initialLocation,
-                markers: Set.of((marker != null) ? [marker] : []),
+                markers: Set.from(marker1),
                 onMapCreated: (GoogleMapController controller) {
                   _controller = controller;
                   getCurrentLocation();
@@ -166,22 +175,22 @@ class _AddressMapState extends State<AddressMap> {
     return add;
   }
   _setMarker(LatLng tappedLoc) {
+    //marker1.clear();
     setState(() {
-      marker = Marker(
-          markerId: MarkerId("home1"),
+
+      marker1 = [];
+      marker1.add(Marker(
+          markerId: MarkerId(tappedLoc.toString()),
           position: tappedLoc,
           draggable: false,
-          icon: BitmapDescriptor.fromBytes(customIcon));
-    });
-    LatLng pinCoordinates = tappedLoc;
-    setState(() {
-      _getAddress(pinCoordinates.latitude, pinCoordinates.longitude)
+          icon: pinLocationIcon
+      ));
+
+      _getAddress(tappedLoc.latitude, tappedLoc.longitude)
           .then((value) {
-        setState(() {
-          _address = "${value.first.addressLine}";
-          updatedAddress = _address;
-        });
+        _address = "${value.first.addressLine}";
+        updatedAddress = _address;
       });
-    });
+    });//LatLng pinCoordinates = tappedLoc
   }
 }
