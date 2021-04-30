@@ -3,13 +3,13 @@ import 'package:flutter/material.dart';
 import 'package:velocity_x/velocity_x.dart';
 import 'addressMap.dart';
 
-
 class Address extends StatefulWidget {
   @override
   _AddressState createState() => _AddressState();
 }
 
 class _AddressState extends State<Address> {
+  AddressMap a2 = new AddressMap();
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -60,13 +60,19 @@ class _AddressState extends State<Address> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           HeightBox(MediaQuery.of(context).size.height * 0.02),
-                          'hello'.text.make(),
+                          '${a2.a1.currentAddress}'.text.make(),
                           Row(
                             mainAxisAlignment: MainAxisAlignment.start,
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               FlatButton(
-                                  onPressed: () {},
+                                  onPressed: () {
+                                    Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                            builder: (context) =>
+                                                AddressMap()));
+                                  },
                                   child: "EDIT".text.orange400.make()),
                               FlatButton(
                                   onPressed: () {},

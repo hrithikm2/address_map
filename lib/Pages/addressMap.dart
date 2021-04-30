@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:typed_data';
+import 'package:address_app/services/getcurrentloc.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
@@ -7,65 +8,68 @@ import 'package:location/location.dart';
 import 'package:velocity_x/velocity_x.dart';
 import 'package:geocoder/geocoder.dart';
 
-
 class AddressMap extends StatefulWidget {
   @override
   _AddressMapState createState() => _AddressMapState();
+  _AddressMapState a1 = new _AddressMapState();
 }
 
 class _AddressMapState extends State<AddressMap> {
   StreamSubscription _locationSubscription;
   Location _locationTracker = Location();
+  List<Marker> marker1 = [];
   Marker marker;
   GoogleMapController _controller;
-  String currentAddress,updatedAddress,_address;
-  Uint8List customIcon;
-
-
+  String currentAddress, updatedAddress, _address;
+  Functions functions = new Functions();
   static final CameraPosition initialLocation = CameraPosition(
     target: LatLng(37.42796133580664, -122.085749655962),
     zoom: 14.4746,
   );
 
-  Future<Uint8List> getMarker() async {
-    ByteData byteData = await DefaultAssetBundle.of(context).load("res/pin.png");
-    return byteData.buffer.asUint8List();
+  BitmapDescriptor pinLocationIcon;
+  @override
+  void initState() {
+    super.initState();
+    setCustomMapPin();
   }
 
-  void updateMarkerAndCircle(LocationData newLocalData, Uint8List imageData) {
+  void setCustomMapPin() async {
+    pinLocationIcon = await BitmapDescriptor.fromAssetImage(
+        ImageConfiguration(devicePixelRatio: 2.5), 'res/pin.png');
+  }
+
+  void updateMarkerAndCircle(LocationData newLocalData) {
     LatLng latlng = LatLng(newLocalData.latitude, newLocalData.longitude);
     this.setState(() {
-      marker = Marker(
-          markerId: MarkerId("home1"),
+      //marker1 = [];
+      marker1.add(Marker(
+          markerId: MarkerId(newLocalData.toString()),
           position: latlng,
           draggable: false,
-          icon: BitmapDescriptor.fromBytes(imageData));
+          icon: pinLocationIcon));
     });
   }
 
   void getCurrentLocation() async {
+    var location = await _locationTracker.getLocation();
 
+    updateMarkerAndCircle(location);
+    _controller.animateCamera(CameraUpdate.newCameraPosition(new CameraPosition(
+        bearing: 0,
+        target: LatLng(location.latitude, location.longitude),
+        tilt: 0,
+        zoom: 18.00)));
+    //updateMarkerAndCircle(location, imageData);
 
-      Uint8List imageData = await getMarker();
-      var location = await _locationTracker.getLocation();
-
-      updateMarkerAndCircle(location, imageData);
-          _controller.animateCamera(CameraUpdate.newCameraPosition(new CameraPosition(
-              bearing: 0,
-              target: LatLng(location.latitude, location.longitude),
-              tilt: 0,
-              zoom: 24.00)));
-          updateMarkerAndCircle(location, imageData);
-
-      setState(() {
-        _getAddress(location.latitude, location.longitude)
-            .then((value) {
-          setState(() {
-            _address = "${value.first.addressLine}";
-            currentAddress = _address;
-          });
+    setState(() {
+      functions.getAddress(location.latitude, location.longitude).then((value) {
+        setState(() {
+          _address = "${value.first.addressLine}";
+          currentAddress = _address;
         });
       });
+    });
   }
 
   @override
@@ -88,10 +92,10 @@ class _AddressMapState extends State<AddressMap> {
           Flexible(
             child: GoogleMap(
                 mapType: MapType.normal,
-                zoomGesturesEnabled: false,
+                zoomGesturesEnabled: true,
                 zoomControlsEnabled: false,
                 initialCameraPosition: initialLocation,
-                markers: Set.of((marker != null) ? [marker] : []),
+                markers: Set.from(marker1),
                 onMapCreated: (GoogleMapController controller) {
                   _controller = controller;
                   getCurrentLocation();
@@ -153,6 +157,15 @@ class _AddressMapState extends State<AddressMap> {
                     ],
                   ),
                 ),
+                Center(
+                  child: FlatButton(
+                    minWidth: MediaQuery.of(context).size.width * 0.8,
+                    onPressed: () {},
+                    child: Text('Save Address',
+                        style: TextStyle(color: Colors.white)),
+                    color: Colors.green,
+                  ),
+                ),
               ],
             ),
           )
@@ -160,28 +173,33 @@ class _AddressMapState extends State<AddressMap> {
       ),
     );
   }
-  Future<List<Address>> _getAddress(double lat, double lang) async {
+
+  Future<List<Address>> getAddress(double lat, double lang) async {
     final coordinates = new Coordinates(lat, lang);
-    List<Address> add = await Geocoder.local.findAddressesFromCoordinates(coordinates);
+    List<Address> add =
+        await Geocoder.local.findAddressesFromCoordinates(coordinates);
     return add;
   }
+
   _setMarker(LatLng tappedLoc) {
+    //marker1.clear();
     setState(() {
-      marker = Marker(
-          markerId: MarkerId("home1"),
+      marker1 = [];
+      marker1.add(Marker(
+          markerId: MarkerId(tappedLoc.toString()),
           position: tappedLoc,
           draggable: false,
-          icon: BitmapDescriptor.fromBytes(customIcon));
-    });
-    LatLng pinCoordinates = tappedLoc;
-    setState(() {
-      _getAddress(pinCoordinates.latitude, pinCoordinates.longitude)
-          .then((value) {
-        setState(() {
-          _address = "${value.first.addressLine}";
-          updatedAddress = _address;
-        });
+          icon: pinLocationIcon));
+
+      getAddress(tappedLoc.latitude, tappedLoc.longitude).then((value) {
+        r = tappedLoc.latitude;
+        t = tappedLoc.longitude;
+        _address = "${value.first.addressLine}";
+        updatedAddress = _address;
       });
-    });
+    }); //LatLng pinCoordinates = tappedLoc
   }
+
+  double r;
+  double t;
 }
